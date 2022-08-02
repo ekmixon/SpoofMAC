@@ -54,9 +54,11 @@ def list_interfaces(args, spoofer):
         targets += wireless_port_names
 
     for port, device, address, current_address in spoofer.find_interfaces(targets=targets):
-        line = []
-        line.append('- "{port}"'.format(port=port))
-        line.append('on device "{device}"'.format(device=device))
+        line = [
+            '- "{port}"'.format(port=port),
+            'on device "{device}"'.format(device=device),
+        ]
+
         if address:
             line.append('with MAC address {mac}'.format(mac=address))
         if current_address and address != current_address:
@@ -110,11 +112,9 @@ def main(args, root_or_admin):
             if not root_or_admin:
                 if sys.platform == 'win32':
                     print('Error: Must run this with administrative privileges to set MAC addresses')
-                    return NON_ROOT_USER
                 else:
                     print('Error: Must run this as root (or with sudo) to set MAC addresses')
-                    return NON_ROOT_USER
-
+                return NON_ROOT_USER
             set_interface_mac(device, target_mac, port)
     elif args['normalize']:
         print(normalize_mac_address(args['<mac>']))

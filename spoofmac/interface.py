@@ -48,9 +48,7 @@ class LinuxSpooferIP(OsSpoofer):
     def get_interface_mac(self, device):
         result = subprocess.check_output(["ip", "link", "show", device], stderr=subprocess.STDOUT, universal_newlines=True)
         m = re.search("(?<=\w\s)(.*)(?=\sbrd)", result)
-        if not hasattr(m, "group") or m.group(0) == None:
-            return None
-        return m.group(0).strip()
+        return None if not hasattr(m, "group") or m[0] is None else m[0].strip()
 
     def find_interfaces(self, targets=None):
         """
@@ -112,13 +110,13 @@ class LinuxSpooferIP(OsSpoofer):
         Set the device's mac address.  Handles shutting down and starting back up interface.
         """
         # turn off device
-        cmd = "ip link set {} down".format(device)
+        cmd = f"ip link set {device} down"
         subprocess.call(cmd.split())
         # set mac
-        cmd = "ip link set {} address {}".format(device, mac)
+        cmd = f"ip link set {device} address {mac}"
         subprocess.call(cmd.split())
         # turn on device
-        cmd = "ip link set {} up".format(device)
+        cmd = f"ip link set {device} up"
         subprocess.call(cmd.split())
 
 class LinuxSpoofer(OsSpoofer):
@@ -128,9 +126,7 @@ class LinuxSpoofer(OsSpoofer):
     def get_interface_mac(self, device):
         result = subprocess.check_output(["ifconfig", device], stderr=subprocess.STDOUT, universal_newlines=True)
         m = re.search("(?<=HWaddr\\s)(.*)", result)
-        if not hasattr(m, "group") or m.group(0) == None:
-            return None
-        return m.group(0).strip()
+        return None if not hasattr(m, "group") or m[0] is None else m[0].strip()
 
     def find_interfaces(self, targets=None):
         """
@@ -150,7 +146,7 @@ class LinuxSpoofer(OsSpoofer):
         details = re.findall("(.*?)HWaddr(.*)", output, re.MULTILINE)
 
         # extract out ifconfig results from STDOUT
-        for i in range(0, len(details)):
+        for i in range(len(details)):
             description = None
             address = None
             adapter_name = None
@@ -190,10 +186,10 @@ class LinuxSpoofer(OsSpoofer):
         Set the device's mac address.  Handles shutting down and starting back up interface.
         """
         # turn off device & set mac
-        cmd = "ifconfig {} down hw ether {}".format(device, mac)
+        cmd = f"ifconfig {device} down hw ether {mac}"
         subprocess.call(cmd.split())
         # turn on device
-        cmd = "ifconfig {} up".format(device)
+        cmd = f"ifconfig {device} up"
         subprocess.call(cmd.split())
 
 class WindowsSpoofer(OsSpoofer):
@@ -213,12 +209,12 @@ class WindowsSpoofer(OsSpoofer):
                 result = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             except FileNotFoundError:
                 raise
-            query = '('+description+'\r\n\s*.*:\r\n\s*)PCI\\\\(([A-Z]|[0-9]|_|&)*)'
+            query = f'({description}' + '\r\n\s*.*:\r\n\s*)PCI\\\\(([A-Z]|[0-9]|_|&)*)'
             query = query.encode('ascii')
             match = re.search(query,result)
-            cmd = 'devcon restart "PCI\\' + str(match.group(2).decode('ascii'))+ '"'
+            cmd = 'devcon restart "PCI\\' + str(match[2].decode('ascii')) + '"'
             subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            
+
         else:
             cmd = "netsh interface set interface \"" + device + "\" disable"
             subprocess.check_output(cmd)
@@ -235,21 +231,23 @@ class WindowsSpoofer(OsSpoofer):
         device = device.lower().strip()
 
         # search for specific adapter gobble through mac address
-        m = re.search("adapter "+device+":[\\n\\r]+(.*?)\\s*Physical Address[^\\d]+(\\s\\S+)", output, re.I | re.DOTALL)
-        if not hasattr(m, "group") or m.group(0) == None:
+        m = re.search(
+            f"adapter {device}"
+            + ":[\\n\\r]+(.*?)\\s*Physical Address[^\\d]+(\\s\\S+)",
+            output,
+            re.I | re.DOTALL,
+        )
+
+        if not hasattr(m, "group") or m[0] is None:
             return None
 
-        adapt_mac = m.group(0)
+        adapt_mac = m[0]
 
         # extract physical address then mac
         m = re.search("Physical Address[^\\d]+(\\s\\S+)", adapt_mac)
-        phy_addr = m.group(0)
+        phy_addr = m[0]
         m = re.search("(?<=:\\s)(.*)", phy_addr)
-        if not hasattr(m, "group") or m.group(0) == None:
-            return None
-
-        mac = m.group(0)
-        return mac
+        return None if not hasattr(m, "group") or m[0] is None else m[0]
 
     def find_interfaces(self, targets=None):
         """
@@ -269,7 +267,7 @@ class WindowsSpoofer(OsSpoofer):
         details = re.findall("adapter (.*?):[\\n\\r]+(.*?)\\s*Physical Address[^\\d]+(\\s\\S+)", output, re.DOTALL)
 
         # extract out ipconfig results from STDOUT
-        for i in range(0, len(details)):
+        for i in range(len(details)):
             dns = None
             description = None
             address = None
@@ -277,16 +275,16 @@ class WindowsSpoofer(OsSpoofer):
 
             # extract DNS suffix
             m = re.search("(?<=:\\s)(.*)", details[i][1])
-            if hasattr(m, "group") and m.group(0) != None:
-                dns = m.group(0).strip()
+            if hasattr(m, "group") and m[0] != None:
+                dns = m[0].strip()
 
             # extract description then strip out value
             m = re.search("Description[^\\d]+(\\s\\S+)+", details[i][1])
-            if hasattr(m, "group") and m.group(0) != None:
-                descript_line = m.group(0)
+            if hasattr(m, "group") and m[0] != None:
+                descript_line = m[0]
                 m = re.search("(?<=:\\s)(.*)", descript_line)
-                if hasattr(m, "group") and m.group(0) != None:
-                    description = m.group(0).strip()
+            if hasattr(m, "group") and m[0] != None:
+                description = m[0].strip()
 
             address = details[i][2].strip()
 
@@ -325,7 +323,7 @@ class WindowsSpoofer(OsSpoofer):
         adapter_key = None
         adapter_path = None
 
-        
+
         for x in range(info[0]):
             subkey = winreg.EnumKey(key, x)
             path = self.WIN_REGISTRY_PATH + "\\" + subkey
@@ -342,10 +340,8 @@ class WindowsSpoofer(OsSpoofer):
                     break
                 else:
                     winreg.CloseKey(new_key)
-            except (WindowsError) as err:
-                if err.errno == 2:  # register value not found, ok to ignore
-                    pass
-                else:
+            except WindowsError as err:
+                if err.errno != 2:
                     raise err
 
         if adapter_path is None:

@@ -77,13 +77,11 @@ def normalize_mac_address(mac):
 
     ... and returns it in the format 00:00:00:00:00:00.
     """
-    m = CISCO_MAC_ADDRESS_R.match(mac)
-    if m:
+    if m := CISCO_MAC_ADDRESS_R.match(mac):
         new_mac = ''.join([g.zfill(4) for g in m.groups()])
         return ':'.join(_chunk(new_mac, 2)).upper()
 
-    m = MAC_ADDRESS_R.match(mac)
-    if m:
+    if m := MAC_ADDRESS_R.match(mac):
         return ':'.join([g.zfill(2) for g in m.groups()]).upper()
 
     return None
@@ -99,13 +97,11 @@ def normalise_mac_address_windows(mac):
 
     ... and returns it in the format 00-00-00-00-00-00.
     """
-    m = CISCO_MAC_ADDRESS_R.match(mac)
-    if m:
+    if m := CISCO_MAC_ADDRESS_R.match(mac):
         new_mac = ''.join([g.zfill(4) for g in m.groups()])
         return '-'.join(_chunk(new_mac, 2)).upper()
 
-    m = MAC_ADDRESS_R.match(mac)
-    if m:
+    if m := MAC_ADDRESS_R.match(mac):
         return '-'.join([g.zfill(2) for g in m.groups()]).upper()
 
     return None
